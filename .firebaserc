@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "aeroassistproject",
+    "staging": "aeroassistproject"
+  },
+  "targets": {},
+  "etags": {}
+}
