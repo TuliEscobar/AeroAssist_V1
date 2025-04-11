@@ -158,49 +158,31 @@ Las contribuciones son bienvenidas. Por favor, abre un issue primero para discut
 
 ## ℹ️ Estado Actual del Proyecto
 
-Por el momento, el chatbot solo está funcional en la versión local (`chatbot.js`). La integración con Firebase está en desarrollo y aún no está operativa. Para usar el chatbot:
+El chatbot está completamente funcional tanto en la versión local como en la versión web desplegada en Firebase:
 
-1. **Versión Local (Funcional)**:
+1. **Versión Local**:
    ```bash
    node chatbot.js
    ```
    Esta versión incluye todas las funcionalidades del asistente virtual.
 
-2. **Versión Firebase (En Desarrollo)**:
-   - La integración con Firebase está en proceso
-   - Las funcionalidades del chatbot en la versión web aún no están disponibles
-   - Se actualizará cuando la integración esté completa
+2. **Versión Web (Firebase)**:
+   - Disponible en: https://aeroassistproject.web.app
+   - Totalmente funcional con la API de Google Gemini
+   - Interfaz web moderna y responsive
+   - Integración completa con Firebase Hosting
 
-## 🚀 Despliegue en Producción
+### Características Actuales
+- ✅ Chatbot funcional en versión local
+- ✅ Chatbot funcional en versión web
+- ✅ Integración con Google Gemini API
+- ✅ Despliegue en Firebase
+- ✅ Interfaz web responsive
+- ✅ Sistema de manejo de errores
+- ✅ Logging y debugging
 
-Para desplegar la aplicación en Firebase:
-
-1. **Configurar Variables de Entorno**:
-   - Crear archivo `.env.production` en la raíz del proyecto
-   ```env
-   # Google Gemini API Key
-   REACT_APP_GOOGLE_API_KEY=tu_api_key_de_google
-
-   # Firebase Config
-   REACT_APP_FIREBASE_API_KEY=tu_firebase_api_key
-   REACT_APP_FIREBASE_AUTH_DOMAIN=tu_firebase_auth_domain
-   REACT_APP_FIREBASE_PROJECT_ID=tu_firebase_project_id
-   REACT_APP_FIREBASE_STORAGE_BUCKET=tu_firebase_storage_bucket
-   REACT_APP_FIREBASE_MESSAGING_SENDER_ID=tu_firebase_messaging_sender_id
-   REACT_APP_FIREBASE_APP_ID=tu_firebase_app_id
-   ```
-
-2. **Construir la Aplicación**:
-   ```bash
-   npm run build
-   ```
-
-3. **Desplegar en Firebase**:
-   ```bash
-   firebase deploy
-   ```
-
-> ⚠️ **IMPORTANTE**: 
-> - Asegúrate de que la API key tenga los permisos correctos en Google Cloud Console
-> - Configura las variables de entorno en Firebase antes de desplegar
-> - No subas los archivos `.env` o `.env.production` al repositorio
+### Próximas Actualizaciones
+- 📝 Integración con Firebase Authentication
+- 📝 Base de datos expandida en Firestore
+- 📝 Historial de conversaciones
+- 📝 Soporte para múltiples idiomas
