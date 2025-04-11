@@ -1,10 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import {
+  MDBCard,
+  MDBCardBody,
+  MDBCardHeader,
+  MDBInput,
+  MDBBtn,
+  MDBIcon,
+  MDBSpinner,
+  MDBBadge
+} from 'mdb-react-ui-kit';
 import './Chatbot.css';
 
 const MODEL = "gemini-1.5-pro-latest";
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
-const API_KEY = process.env.REACT_APP_GOOGLE_API_KEY?.trim();
+const API_KEY = process.env.REACT_APP_GOOGLE_API_KEY;
+
+// Debug de variables de entorno
+console.log('Debug de configuración:', {
+  API_KEY_PRESENT: !!API_KEY,
+  API_KEY_LENGTH: API_KEY?.length,
+  ENV: process.env.NODE_ENV,
+  ALL_ENV: process.env
+});
 
 // Validación inicial de la API key
 if (!API_KEY) {
@@ -14,6 +32,21 @@ if (!API_KEY) {
   console.error('3. Reiniciar el servidor de desarrollo después de crear/modificar el .env');
 }
 
+const Message = ({ content, isUser, timestamp }) => {
+  const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  
+  return (
+    <div className={`d-flex ${isUser ? 'justify-content-end' : 'justify-content-start'} mb-3`}>
+      <div className={`message ${isUser ? 'user-message' : 'bot-message'}`}>
+        <div className="message-content">{content}</div>
+        <div className={`message-time small ${isUser ? 'text-white-50' : 'text-muted'}`}>
+          {time}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Chatbot = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -21,24 +54,44 @@ const Chatbot = () => {
   const [faqs, setFaqs] = useState([]);
   const [error, setError] = useState(null);
   const [apiKeyValid, setApiKeyValid] = useState(true);
-  const messagesEndRef = useRef(null);
+  const [isListening, setIsListening] = useState(false);
+  const chatContainerRef = useRef(null);
+  const recognition = useRef(null);
 
   useEffect(() => {
-    // Verificar API Key al inicio
     if (!API_KEY) {
       setApiKeyValid(false);
       setError('API Key no configurada. Contacta al administrador.');
     }
+
+    // Inicializar reconocimiento de voz
+    if ('webkitSpeechRecognition' in window) {
+      recognition.current = new window.webkitSpeechRecognition();
+      recognition.current.continuous = true;
+      recognition.current.interimResults = true;
+      recognition.current.lang = 'es-ES';
+
+      recognition.current.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0])
+          .map(result => result.transcript)
+          .join('');
+        
+        setInput(transcript);
+      };
+
+      recognition.current.onerror = (event) => {
+        console.error('Error en reconocimiento de voz:', event.error);
+        setIsListening(false);
+      };
+    }
   }, []);
 
   useEffect(() => {
-    // Cargar FAQs al iniciar
     const loadFaqs = async () => {
       try {
-        console.log('Intentando cargar FAQs...');
         const response = await fetch('/faqs.json');
         const data = await response.json();
-        console.log('FAQs cargados:', data);
         setFaqs(data);
       } catch (error) {
         console.error('Error cargando FAQs:', error);
@@ -47,41 +100,27 @@ const Chatbot = () => {
     loadFaqs();
   }, []);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const construirContexto = (faqs) => {
-    const contexto = faqs.map(faq => `P: ${faq.pregunta}\nR: ${faq.respuesta}`).join('\n');
-    console.log('Contexto construido:', contexto);
-    return contexto;
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-    if (!apiKeyValid) {
-      setError('No se puede procesar la solicitud: API Key no válida');
-      return;
-    }
 
     const userMessage = input.trim();
-    setMessages(prev => [...prev, { text: userMessage, isUser: true }]);
     setInput('');
+    setMessages(prev => [...prev, { content: userMessage, isUser: true, timestamp: new Date() }]);
     setIsLoading(true);
     setError(null);
 
     try {
-      const contexto = construirContexto(faqs);
-      const prompt = `${contexto}\n\nPregunta: ${userMessage}\nRespuesta:`;
-
       const response = await axios.post(API_URL, {
         contents: [{
-          parts: [{ text: prompt }]
+          parts: [{ text: userMessage }]
         }]
       }, {
         headers: {
@@ -90,83 +129,119 @@ const Chatbot = () => {
         }
       });
 
-      if (!response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-        throw new Error('Respuesta inválida del servidor');
-      }
-
       const botResponse = response.data.candidates[0].content.parts[0].text;
-      setMessages(prev => [...prev, { text: botResponse, isUser: false }]);
+      setMessages(prev => [...prev, { content: botResponse, isUser: false, timestamp: new Date() }]);
     } catch (error) {
-      console.error('Error en la llamada a la API:', error);
-      let errorMessage;
-      
-      if (error.response?.status === 401) {
-        setApiKeyValid(false);
-        errorMessage = "Error de autenticación: La API Key no es válida";
-      } else if (error.response?.status === 403) {
-        errorMessage = "Error de permisos: Verifica los permisos de la API Key";
-      } else {
-        errorMessage = error.message || "Error al procesar tu pregunta";
+      console.error('Error:', error);
+      setError('Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
+      if (isListening) {
+        recognition.current.stop();
+        setIsListening(false);
       }
-      
-      setError(errorMessage);
-      setMessages(prev => [...prev, { 
-        text: errorMessage,
-        isUser: false 
-      }]);
     }
-
-    setIsLoading(false);
   };
 
+  const toggleListening = () => {
+    if (isListening) {
+      recognition.current.stop();
+    } else {
+      recognition.current.start();
+    }
+    setIsListening(!isListening);
+  };
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
+
   return (
-    <div className="chatbot-container">
-      <div className="chatbot-header">
-        <h2>AeroAssist Chat</h2>
-        {error && <div className="error-message">{error}</div>}
-        {!apiKeyValid && (
-          <div className="api-key-warning">
-            ⚠️ Error de configuración: API Key no válida
+    <MDBCard className="modern-card">
+      <MDBCardHeader className="bg-transparent border-0">
+        <div className="d-flex justify-content-between align-items-center">
+          <div className="d-flex align-items-center">
+            <MDBIcon fas icon="robot" className="me-2 gradient-text" size="lg" />
+            <h5 className="mb-0 gradient-text">AeroAssist Chat</h5>
           </div>
-        )}
-      </div>
-      <div className="messages-container">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`message ${message.isUser ? 'user-message' : 'bot-message'}`}
-          >
-            <div className="message-content">
-              {message.text}
+          <MDBBadge color="success" className="px-3 py-2">
+            <MDBIcon fas icon="circle" className="me-2" size="xs" /> En línea
+          </MDBBadge>
+        </div>
+      </MDBCardHeader>
+      
+      <MDBCardBody>
+        <div className="messages-container">
+          {messages.length === 0 && (
+            <div className="welcome-message bot-message message">
+              <MDBIcon fas icon="robot" className="me-2" />
+              ¡Hola! Soy AeroAssist, tu asistente virtual especializado en regulaciones aeronáuticas. 
+              Estoy aquí para ayudarte con cualquier consulta sobre normativas y procedimientos aeronáuticos.
             </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="message bot-message">
-            <div className="message-content loading">
-              <div className="typing-indicator">
-                <span></span>
-                <span></span>
-                <span></span>
+          )}
+          {messages.map((message, index) => (
+            <Message
+              key={index}
+              content={message.content}
+              isUser={message.isUser}
+              timestamp={message.timestamp}
+            />
+          ))}
+          {isLoading && (
+            <div className="d-flex justify-content-start">
+              <div className="bot-message message">
+                <MDBSpinner size="sm" color="primary" className="me-2" />
+                Escribiendo...
               </div>
             </div>
-          </div>
+          )}
+        </div>
+        
+        {error && (
+          <div className="alert alert-danger mb-3">{error}</div>
         )}
-        <div ref={messagesEndRef} />
-      </div>
-      <form onSubmit={handleSubmit} className="input-form">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Haz una pregunta sobre regulaciones aeronáuticas..."
-          disabled={isLoading}
-        />
-        <button type="submit" disabled={isLoading}>
-          Enviar
-        </button>
-      </form>
-    </div>
+
+        <div className="form-container">
+          <form onSubmit={handleSubmit}>
+            <div className="d-flex gap-2">
+              <div className="form-outline flex-grow-1">
+                <MDBIcon fas icon="comment-dots" className="chat-input-icon" />
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="chat-input form-control"
+                  placeholder="Escribe aquí tu pregunta..."
+                  disabled={isLoading}
+                />
+              </div>
+              
+              {'webkitSpeechRecognition' in window && (
+                <MDBBtn 
+                  color={isListening ? 'danger' : 'primary'}
+                  className="px-3"
+                  onClick={toggleListening}
+                  type="button"
+                >
+                  <MDBIcon fas icon={isListening ? 'stop' : 'microphone'} />
+                </MDBBtn>
+              )}
+              
+              <MDBBtn 
+                type="submit"
+                disabled={!input.trim() || isLoading}
+                className="px-3"
+              >
+                <MDBIcon fas icon="paper-plane" />
+              </MDBBtn>
+            </div>
+          </form>
+        </div>
+      </MDBCardBody>
+    </MDBCard>
   );
 };
 
