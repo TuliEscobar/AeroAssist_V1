@@ -86,7 +86,7 @@ const Chatbot = () => {
       }, {
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${API_KEY}`
+          "x-goog-api-key": API_KEY
         }
       });
 
