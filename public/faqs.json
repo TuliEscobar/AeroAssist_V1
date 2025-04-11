@@ -1,0 +1,14 @@
+[
+    {
+        "pregunta": "¿Qué es un NDB (Non-Directional Beacon)?",
+        "respuesta": "Un NDB (Non-Directional Beacon) es un sistema de radionavegación que emite señales de radio omnidireccionales. Es una ayuda a la navegación que permite a las aeronaves determinar su dirección relativa hacia o desde la estación NDB. Es uno de los sistemas más básicos y antiguos de navegación aérea, pero aún se utiliza como respaldo y en áreas donde otras ayudas de navegación no están disponibles."
+    },
+    {
+        "pregunta": "¿Cuál es la altitud máxima permitida para vuelos comerciales?",
+        "respuesta": "La altitud máxima permitida para vuelos comerciales es de 45,000 pies."
+    },
+    {
+        "pregunta": "¿Qué documentos son necesarios para un vuelo internacional?",
+        "respuesta": "Para un vuelo internacional, se requiere pasaporte, visa (si aplica), y el boleto de avión."
+    }
+] 
