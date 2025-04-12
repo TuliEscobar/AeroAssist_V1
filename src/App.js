@@ -16,25 +16,20 @@ const App = () => {
     <Layout>
       <MDBContainer fluid className="py-3">
         <MDBRow>
-          {/* Columna Derecha: Chat - Aparecerá primero en móviles */}
-          <MDBCol lg="8" className="px-4 order-lg-2 order-1 mb-3 mb-lg-0">
-            <Chatbot />
-          </MDBCol>
-
-          {/* Columna Izquierda: Información y Guía - Aparecerá segunda en móviles */}
-          <MDBCol lg="4" className="px-4 order-lg-1 order-2">
+          {/* Columna Izquierda: Información y Guía */}
+          <MDBCol lg="6" className="px-4">
             <div className="mb-3">
               <MDBTypography tag='h1' className='display-6 gradient-text mb-2'>
                 <MDBIcon fas icon='plane-departure' className='me-2' />
                 AeroAssist
               </MDBTypography>
-              <p className="lead text-muted mb-3 small">
+              <p className="lead text-muted mb-3">
                 Tu asistente virtual especializado en documentación y regulaciones aeronáuticas OACI
               </p>
             </div>
 
-            <div className="mb-3">
-              <MDBCardBody className='p-0'>
+            <MDBCard className='mb-3'>
+              <MDBCardBody className='p-3'>
                 <h6 className='mb-2 gradient-text'>
                   <MDBIcon fas icon='info-circle' className='me-2' />
                   Cómo Usar el Chat
@@ -54,10 +49,10 @@ const App = () => {
                   </li>
                 </ul>
               </MDBCardBody>
-            </div>
+            </MDBCard>
 
-            <div>
-              <MDBCardBody className='p-0'>
+            <MDBCard className='mb-3'>
+              <MDBCardBody className='p-3'>
                 <h6 className='mb-2 gradient-text'>
                   <MDBIcon fas icon='question-circle' className='me-2' />
                   Preguntas Sugeridas
@@ -68,7 +63,12 @@ const App = () => {
                   <li className="py-2">Explícame las regulaciones sobre tiempo de vuelo y descanso</li>
                 </ul>
               </MDBCardBody>
-            </div>
+            </MDBCard>
+          </MDBCol>
+
+          {/* Columna Derecha: Chat */}
+          <MDBCol lg="6" className="px-4">
+            <Chatbot />
           </MDBCol>
         </MDBRow>
       </MDBContainer>

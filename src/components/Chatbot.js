@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
 import {
   MDBCard,
   MDBCardBody,
@@ -11,6 +12,7 @@ import {
   MDBBadge
 } from 'mdb-react-ui-kit';
 import './Chatbot.css';
+import agentPrompt from '../config/agent-config';
 
 const MODEL = "gemini-1.5-pro-latest";
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
@@ -38,7 +40,27 @@ const Message = ({ content, isUser, timestamp }) => {
   return (
     <div className={`d-flex ${isUser ? 'justify-content-end' : 'justify-content-start'} mb-3`}>
       <div className={`message ${isUser ? 'user-message' : 'bot-message'}`}>
-        <div className="message-content">{content}</div>
+        <div className="message-content">
+          {isUser ? (
+            content
+          ) : (
+            <ReactMarkdown
+              components={{
+                h1: ({node, ...props}) => <h1 className="markdown-heading" {...props} />,
+                h2: ({node, ...props}) => <h2 className="markdown-heading" {...props} />,
+                h3: ({node, ...props}) => <h3 className="markdown-heading" {...props} />,
+                p: ({node, ...props}) => <p className="markdown-paragraph" {...props} />,
+                ul: ({node, ...props}) => <ul className="markdown-list" {...props} />,
+                li: ({node, ...props}) => <li className="markdown-list-item" {...props} />,
+                strong: ({node, ...props}) => <strong className="markdown-bold" {...props} />,
+                em: ({node, ...props}) => <em className="markdown-italic" {...props} />,
+                code: ({node, ...props}) => <code className="markdown-code" {...props} />
+              }}
+            >
+              {content}
+            </ReactMarkdown>
+          )}
+        </div>
         <div className={`message-time small ${isUser ? 'text-white-50' : 'text-muted'}`}>
           {time}
         </div>
@@ -119,9 +141,44 @@ const Chatbot = () => {
 
     try {
       const response = await axios.post(API_URL, {
-        contents: [{
-          parts: [{ text: userMessage }]
-        }]
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: agentPrompt.instructions }]
+          },
+          {
+            role: "model",
+            parts: [{ text: "Entendido. Actuaré como un especialista en aeronáutica siguiendo las instrucciones proporcionadas." }]
+          },
+          {
+            role: "user",
+            parts: [{ text: userMessage }]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048
+        },
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          }
+        ]
       }, {
         headers: {
           "Content-Type": "application/json",
@@ -129,10 +186,14 @@ const Chatbot = () => {
         }
       });
 
-      const botResponse = response.data.candidates[0].content.parts[0].text;
-      setMessages(prev => [...prev, { content: botResponse, isUser: false, timestamp: new Date() }]);
+      if (response.data && response.data.candidates && response.data.candidates[0]) {
+        const botResponse = response.data.candidates[0].content.parts[0].text;
+        setMessages(prev => [...prev, { content: botResponse, isUser: false, timestamp: new Date() }]);
+      } else {
+        throw new Error('Respuesta inválida de la API');
+      }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error:', error.response?.data || error.message || error);
       setError('Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.');
     } finally {
       setIsLoading(false);
